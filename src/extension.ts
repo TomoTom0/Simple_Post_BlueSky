@@ -65,13 +65,48 @@ const getCurrentFormattedTime = (): string => {
 
 
 async function postNote(options_axios: AxiosRequestConfig) {
-
 	try {
 		const response = await axios(options_axios);
 		console.log('Note posted successfully');
 	} catch (error) {
 		console.error('Error posting note:', error);
 	}
+}
+
+const upload_image = async (image_alt: string, image_path: string, post_body_new: IPostBody) => {
+	const API_KEY = conf.misskey_token;
+
+	const headers = {
+		"Content-Type": "multipart/form-data"
+	};
+
+	let file_path_new: string = ((image_alt === "Alt text") ? path.basename(image_path) : image_alt);
+	if (image_alt === "Alt text") {
+		file_path_new = getCurrentFormattedTime() + "_" + path.basename(image_path);
+	} else if (image_alt === "!raw") {
+		file_path_new = path.basename(image_path);
+	} else if (image_alt === "!dt") {
+		file_path_new = getCurrentFormattedTime() + path.extname(image_path);
+	}
+	console.log(file_path_new);
+	const form = new FormData();
+	form.append("file", fs.createReadStream(path.resolve(path.dirname(editor_path), image_path)));
+	form.append('name', file_path_new);
+	form.append("i", API_KEY);
+	if (conf.misskey_folder_id) {
+		form.append("folderId", conf.misskey_folder_id);
+	}
+	const response = await axios.post(
+		`${MISSKEY_INSTANCE}/api/drive/files/create`, form, {
+		headers: headers
+	}
+	);
+	console.log('Upload successful:', response.data);
+	const media_id = await response.data.id;
+	if (!post_body_new.mediaIds) {
+		post_body_new.mediaIds = [];
+	}
+	post_body_new.mediaIds.push(media_id);
 }
 
 const perse_text = async (text: string, post_body_default: IPostBody, editor_path: string): Promise<IPostBody[]> => {
@@ -87,7 +122,7 @@ const perse_text = async (text: string, post_body_default: IPostBody, editor_pat
 			const str_title = line.replace(res_check_title[0], "");
 			const title_level_before = title_level;
 			title_level = res_check_title[1].length;
-			console.log(mode, title_level, str_title, arr_stack_text);
+			// console.log(mode, title_level, str_title, arr_stack_text);
 			if (mode === "text") {
 				const arr_stack_text_valid = arr_stack_text.map(
 					(v) => v.trim()
@@ -130,66 +165,16 @@ const perse_text = async (text: string, post_body_default: IPostBody, editor_pat
 
 		} else if (line.match(/^\s*!\[.*\]\(.*\)\s*$/)) {
 			const res_image = line.match(/^\s*!\[(.*)\]\((.*)\)\s*$/);
-			console.log(res_image);
 			if (!res_image) {
 				continue;
 			}
-			const API_KEY = conf.misskey_token;
-
-			const headers = {
-				// Authorization: `Bearer ${API_KEY}`,
-				"Content-Type": "multipart/form-data"
-				// 'Content-Type': 'application/json',
-			};
 			const image_alt = res_image[1];
 			const image_path = res_image[2];
 			try {
-				let file_path_new: string = ((image_alt === "Alt text") ? path.basename(image_path) : image_alt);
-				if (image_alt === "Alt text") {
-					file_path_new = getCurrentFormattedTime() + "_" + path.basename(image_path);
-				} else if (image_alt === "!raw") {
-					file_path_new = path.basename(image_path);
-				} else if (image_alt === "!dt") {
-					file_path_new = getCurrentFormattedTime() + path.extname(image_path);
-				}
-				console.log(file_path_new);
-				const form = new FormData();
-				form.append("file", fs.createReadStream(path.resolve(path.dirname(editor_path), image_path)));
-				form.append('name', file_path_new);
-				form.append("i", API_KEY);
-				if (conf.misskey_folder_id) {
-					form.append("folderId", conf.misskey_folder_id);
-				}
-				// console.log(API_KEY);
-				// AxiosでPOSTリクエストを送信
-				const response = await axios.post(
-					`${MISSKEY_INSTANCE}/api/drive/files/create`, form, {
-					headers: headers
-				}
-				);
-				console.log('Upload successful:', response.data);
-				const media_id = await response.data.id;
-				console.log(media_id);
-				if (!post_body_new.mediaIds) {
-					post_body_new.mediaIds = [];
-				}
-				post_body_new.mediaIds.push(media_id);
+				await upload_image(image_alt, image_path, post_body_new);
 			} catch (error) {
 				console.error('Error uploading image:', error);
 			}
-
-			// readBinaryFile(image_path).then((data) => {
-			// 	const options_axios: AxiosRequestConfig = {
-			// 		url: `${MISSKEY_INSTANCE}/api/drive/files/create`,
-			// 		method: 'post',
-			// 		headers: headers,
-			// 		data: data,
-			// 		params: {fileName: data}
-
-			// }).catch((err) => {
-			// 	console.error(err);
-			// });
-
 
 		} else {
 			if (mode === "config") {
@@ -287,16 +272,6 @@ const post_to_sns = async () => {
 
 	const arr_post_bodys = perse_text(text, post_body_default_merged, editor.document.uri.fsPath);
 
-
-
-	// コンソールにMarkdownファイルの内容を出力
-	// console.log(arr_post_bodys);
-	console.log(arr_post_bodys);
-
-	// 必要に応じて、VSCodeのメッセージウィンドウに内容を表示することもできます
-	vscode.window.showInformationMessage('Markdown content read successfully!');
-
-	// const API_KEY = process.env.MISSKEY_TOKEN; // あなたのAPIキーを設定
 	const API_KEY = conf.misskey_token;
 
 	const headers = {
@@ -313,17 +288,8 @@ const post_to_sns = async () => {
 		// console.log(options_axios);
 		// console.log(API_KEY);
 		postNote(options_axios);
-		await sleep(300);
+		await sleep(5000);
 	}
-	// const options_axios: AxiosRequestConfig = {
-	// 	url: `${MISSKEY_INSTANCE}/api/notes/create`,
-	// 	method: 'post',
-	// 	headers: headers,
-	// 	data: post_body,
-	// };
-	// // console.log(options_axios);
-	// console.log(API_KEY);
-	// await postNote(options_axios);
 	vscode.window.showInformationMessage('Posted to Misskey!');
 
 };
