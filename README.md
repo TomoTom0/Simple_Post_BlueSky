@@ -10,21 +10,8 @@
 
 たとえば下記の通りMarkdownに記入して、`Ctrl+Shift+P`でコマンドパレットを開いて`Simple Post SNS: Post with File`を選択すると、Misskeyに投稿されます。
 
-```markdown
-# test
-
-aa
-
-![Alt text](imgs/demo/image.png)
-
-## config misskey
-
-- cw: bb
-
-##
-
-demo
-```
+![demo_vscode](imgs/README/image.png)
+![demo_misskey](imgs/README/image-1.png)
 
 他の投稿方法として、選択範囲を指定して`Simple Post SNS: Post with Selection`を選択することで、選択範囲のみを投稿することも可能です。
 - [ ] `Simple Post SNS: Post with Clipboard`
