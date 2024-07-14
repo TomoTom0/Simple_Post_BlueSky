@@ -2,8 +2,8 @@
   "name": "simple-post-sns",
   "displayName": "Simple Post SNS",
   "publisher": "tomo-iris",
-  "description": "only post to SNS on VSCode with Markdown",
-  "version": "0.0.1",
+  "description": "post to SNS on VSCode with Markdown",
+  "version": "0.1.0",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -18,7 +18,7 @@
     "commands": [
       {
         "command": "simple-post-sns.post-to-sns",
-        "title": "Simple Post SNS: Post to SNS"
+        "title": "Simple Post SNS: Post to SNS with File"
       },
       {
         "when":"editorHasSelection",
@@ -45,6 +45,11 @@
           "type": "string",
           "default": "{dt}_{name}{ext}",
           "description": "misskey image name rule if alt text is `Alt text`, {name}{ext} = {base}"
+        },
+        "simple_post_sns.file_name_rule": {
+          "type": "string",
+          "default": ".*",
+          "description": "this extension only triggered when file name matches this rule"
         },
         "simple_post_sns.clean_always": {
           "type": "boolean",

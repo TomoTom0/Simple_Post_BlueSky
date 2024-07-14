@@ -177,7 +177,6 @@ class PostSns {
 			await this.post_note(options_axios);
 			await sleep(5000);
 		}
-		// vscode.window.showInformationMessage('Posted to Misskey!');
 		this.confirm_clean_text();
 	};
 	private clean_text = () => {
@@ -437,6 +436,9 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.window.showErrorMessage('No active Markdown editor found.');
 			return;
 		}
+		if (!editor.document.fileName.match(RegExp(CONF.file_name_rule))){
+			return;
+		}
 		const postSns = new PostSns(mode, editor);
 		postSns.post_to_sns();
 		removeMessage(vscode.window.showInformationMessage('Simple Post SNS: Posted'));
@@ -460,5 +462,4 @@ export function activate(context: vscode.ExtensionContext) {
 
 }
 
-// This method is called when your extension is deactivated
 export function deactivate() { }
