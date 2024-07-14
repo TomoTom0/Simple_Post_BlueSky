@@ -9,11 +9,11 @@ import FormData from 'form-data';
 import { config } from 'process';
 
 interface IPostBody {
-	visibility: "public"| "home"| "followers"| "specified" | null;
+	visibility: "public" | "home" | "followers" | "specified" | null;
 	visibleUserIds?: string[];
 	cw: string | null;
 	localOnly: boolean;
-	reactionAcceptance?: "likeOnly"| "likeOnlyForRemote"| "nonSensitiveOnly"| "nonSensitiveOnlyForRemote" | null;
+	reactionAcceptance?: "likeOnly" | "likeOnlyForRemote" | "nonSensitiveOnly" | "nonSensitiveOnlyForRemote" | null;
 	noExtractMentions?: boolean;
 	noExtractHashtags?: boolean;
 	noExtractEmojis?: boolean;
@@ -46,20 +46,20 @@ function readBinaryFile(filePath: string): Promise<Buffer> {
 	});
 }
 
-const sleep = async(ms: number) => {
+const sleep = async (ms: number) => {
 	return new Promise((resolve) => setTimeout(resolve, ms));
-  }
+};
 
 const getCurrentFormattedTime = (): string => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
+	const now = new Date();
+	const year = now.getFullYear();
+	const month = String(now.getMonth() + 1).padStart(2, '0');
+	const day = String(now.getDate()).padStart(2, '0');
+	const hours = String(now.getHours()).padStart(2, '0');
+	const minutes = String(now.getMinutes()).padStart(2, '0');
+	const seconds = String(now.getSeconds()).padStart(2, '0');
 
-    return `${year}-${month}-${day}T${hours}-${minutes}-${seconds}`;
+	return `${year}-${month}-${day}T${hours}-${minutes}-${seconds}`;
 };
 
 
@@ -68,7 +68,6 @@ async function postNote(options_axios: AxiosRequestConfig) {
 
 	try {
 		const response = await axios(options_axios);
-
 		console.log('Note posted successfully');
 	} catch (error) {
 		console.error('Error posting note:', error);
@@ -147,7 +146,7 @@ const perse_text = async (text: string, post_body_default: IPostBody, editor_pat
 			try {
 				let file_path_new: string = ((image_alt === "Alt text") ? path.basename(image_path) : image_alt);
 				if (image_alt === "Alt text") {
-					file_path_new = getCurrentFormattedTime()+"_"+path.basename(image_path);
+					file_path_new = getCurrentFormattedTime() + "_" + path.basename(image_path);
 				} else if (image_alt === "!raw") {
 					file_path_new = path.basename(image_path);
 				} else if (image_alt === "!dt") {
@@ -155,18 +154,18 @@ const perse_text = async (text: string, post_body_default: IPostBody, editor_pat
 				}
 				console.log(file_path_new);
 				const form = new FormData();
-				form.append("file", fs.createReadStream(path.resolve(path.dirname(editor_path),image_path)));	
+				form.append("file", fs.createReadStream(path.resolve(path.dirname(editor_path), image_path)));
 				form.append('name', file_path_new);
 				form.append("i", API_KEY);
-				if (conf.misskey_folder_id){
+				if (conf.misskey_folder_id) {
 					form.append("folderId", conf.misskey_folder_id);
 				}
 				// console.log(API_KEY);
 				// AxiosでPOSTリクエストを送信
 				const response = await axios.post(
 					`${MISSKEY_INSTANCE}/api/drive/files/create`, form, {
-						headers: headers
-					}
+					headers: headers
+				}
 				);
 				console.log('Upload successful:', response.data);
 				const media_id = await response.data.id;

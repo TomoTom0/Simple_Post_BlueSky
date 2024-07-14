@@ -42,21 +42,93 @@
           "description": "misskey folder id"
         },
         "simple_post_sns.misskey_post_default": {
-          "type": "array",
+          "type": "object",
           "description": "default misskey post body",
-          "items": {
-            "type": "object",
+          "default":
+            {
+              "visibility": "specified",
+              "visibleUserIds": [],
+              "cw": null,
+              "localOnly": false,
+              "reactionAcceptance": null,
+              "noExtractMentions": false,
+              "noExtractHashtags": false,
+              "noExtractEmojis": false,
+              "replyId": null,
+              "renoteId": null,
+              "channelId": null,
+              "text": "There is something wrong with VSCode Ext."
+            }
+          ,
             "properties": {
-              "column1": {
+              "visibility": {
                 "type": "string",
-                "description": "key"
+                "description": "Visibility setting"
               },
-              "column2": {
+              "visibleUserIds": {
+                "type": "array",
+                "description": "Visible user IDs",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "cw": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Content warning"
+              },
+              "localOnly": {
+                "type": "boolean",
+                "description": "Local only setting"
+              },
+              "reactionAcceptance": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Reaction acceptance setting"
+              },
+              "noExtractMentions": {
+                "type": "boolean",
+                "description": "No extract mentions setting"
+              },
+              "noExtractHashtags": {
+                "type": "boolean",
+                "description": "No extract hashtags setting"
+              },
+              "noExtractEmojis": {
+                "type": "boolean",
+                "description": "No extract emojis setting"
+              },
+              "replyId": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Reply ID"
+              },
+              "renoteId": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Renote ID"
+              },
+              "channelId": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Channel ID"
+              },
+              "text": {
                 "type": "string",
-                "description": "value"
+                "description": "Text content"
               }
             }
-          }
+          
         }
       }
     }
