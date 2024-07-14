@@ -19,6 +19,11 @@
       {
         "command": "simplePostSns.post-to-sns",
         "title": "Simple Post SNS: Post to SNS"
+      },
+      {
+        "when":"editorHasSelection",
+        "command": "simplePostSns.post-to-sns-with-selection",
+        "title": "Simple Post SNS: Post to SNS with Selected Lines"
       }
     ],
     "menus": {

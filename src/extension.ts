@@ -26,6 +26,21 @@ interface IPostBody {
 	poll?: { [key: string]: any };
 }
 
+const post_body_default: IPostBody = {
+	visibility: 'specified',
+	visibleUserIds: [],
+	cw: null,
+	localOnly: false,
+	reactionAcceptance: null,
+	noExtractMentions: false,
+	noExtractHashtags: false,
+	noExtractEmojis: false,
+	replyId: null,
+	renoteId: null,
+	channelId: null,
+	text: "There is something wrong with VSCode Ext.",
+};
+
 const ALLOWED_KEYS: { [key: string]: string[] } = {
 	visibility: ["public", "home", "followers", "specified"],
 	reactionAcceptance: ["likeOnly", "likeOnlyForRemote", "nonSensitiveOnly", "nonSensitiveOnlyForRemote"],
@@ -62,8 +77,6 @@ const getCurrentFormattedTime = (): string => {
 	return `${year}-${month}-${day}T${hours}-${minutes}-${seconds}`;
 };
 
-
-
 async function postNote(options_axios: AxiosRequestConfig) {
 	try {
 		const response = await axios(options_axios);
@@ -73,7 +86,7 @@ async function postNote(options_axios: AxiosRequestConfig) {
 	}
 }
 
-const upload_image = async (image_alt: string, image_path: string, post_body_new: IPostBody) => {
+const upload_image = async (image_alt: string, image_path: string, post_body_new: IPostBody, editor_path: string) => {
 	const API_KEY = conf.misskey_token;
 
 	const headers = {
@@ -162,7 +175,6 @@ const perse_text = async (text: string, post_body_default: IPostBody, editor_pat
 				mode = "text";
 			}
 			arr_stack_text = [];
-
 		} else if (line.match(/^\s*!\[.*\]\(.*\)\s*$/)) {
 			const res_image = line.match(/^\s*!\[(.*)\]\((.*)\)\s*$/);
 			if (!res_image) {
@@ -171,11 +183,15 @@ const perse_text = async (text: string, post_body_default: IPostBody, editor_pat
 			const image_alt = res_image[1];
 			const image_path = res_image[2];
 			try {
-				await upload_image(image_alt, image_path, post_body_new);
+				await upload_image(image_alt, image_path, post_body_new, editor_path);
 			} catch (error) {
 				console.error('Error uploading image:', error);
 			}
 
+		} else if (line.match(/^\s*<!--.*-->\s*$/)){
+			// コメント行をコメントとして認識
+			const str_content = line.replace(/^\s*<!--(.*)-->\s*$/, "$1").trim();
+			console.log(str_content);
 		} else {
 			if (mode === "config") {
 				configs_per_level[title_level] = update_config(line, structuredClone(configs_per_level[title_level]));
@@ -210,7 +226,6 @@ const update_config = (line: string, config_now: IPostBody): IPostBody => {
 		}
 	}
 
-
 	switch (key_config) {
 		case "visibility":
 			config_now[key_config] = value_config as "public" | "home" | "followers" | "specified" | null;
@@ -243,30 +258,7 @@ const update_config = (line: string, config_now: IPostBody): IPostBody => {
 
 	return config_now;
 };
-const post_to_sns = async () => {
-	const editor = vscode.window.activeTextEditor;
-
-	if (!editor || editor.document.languageId !== 'markdown') {
-		vscode.window.showErrorMessage('No active Markdown editor found.');
-		return;
-	}
-	const document = editor.document;
-	const text = document.getText() + "\n#";
-
-	const post_body_default: IPostBody = {
-		visibility: 'specified',
-		visibleUserIds: [],
-		cw: null,
-		localOnly: false,
-		reactionAcceptance: null,
-		noExtractMentions: false,
-		noExtractHashtags: false,
-		noExtractEmojis: false,
-		replyId: null,
-		renoteId: null,
-		channelId: null,
-		text: "There is something wrong with VSCode Ext.",
-	};
+const post_to_sns = async (editor:vscode.TextEditor, text: string) => {
 
 	const post_body_default_merged: IPostBody = Object.assign(post_body_default, conf.misskey_post_default || {});
 
@@ -301,20 +293,46 @@ export function activate(context: vscode.ExtensionContext) {
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "simple-post-bsky" is now active!');
-	post_to_sns();
+	// post_to_sns();
+	vscode.window.showInformationMessage('Do you want to proceed?', 'Yes', 'No').then(selection =>{
+		if (selection === 'Yes') {
+			vscode.window.showInformationMessage('You clicked Yes!');
+		} else {
+			vscode.window.showInformationMessage('You clicked No!');
+		}
+	})
 	vscode.window.showInformationMessage('Posted to Misskey!25');
 	//Write to output.
 
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('simple-post-sns.postToSns', async () => {
-		;
-		post_to_sns();
+	// let arr_disposables = [];
+	context.subscriptions.push(vscode.commands.registerCommand('simple-post-sns.post-to-sns', async () => {
+		const editor = vscode.window.activeTextEditor;
 
-	});
+		if (!editor || editor.document.languageId !== 'markdown') {
+			vscode.window.showErrorMessage('No active Markdown editor found.');
+			return;
+		}
+		const document = editor.document;
+		const text = document.getText() + "\n#";	
+		post_to_sns(editor, text);
+	}));
+	context.subscriptions.push(vscode.commands.registerCommand('simple-post-sns.post-to-sns-with-selection', async () => {
+		const editor = vscode.window.activeTextEditor;
 
-	context.subscriptions.push(disposable);
+		if (!editor || editor.document.languageId !== 'markdown') {
+			vscode.window.showErrorMessage('No active Markdown editor found.');
+			return;
+		}
+		const selections = editor.selections;
+		const text = selections.map(selection => editor.document.getText(selection)).join("\n") + "\n#";
+
+		post_to_sns(editor, text);
+	}));
+
+	// context.subscriptions.push(disposable);
 }
 
 // This method is called when your extension is deactivated
