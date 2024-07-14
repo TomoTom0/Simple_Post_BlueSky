@@ -45,7 +45,22 @@
         "simple_post_sns.misskey_folder_id": {
           "type": "string",
           "description": "misskey folder id"
+        },        
+        "simple_post_sns.misskey_image_name_rule": {
+          "type": "string",
+          "default": "{dt}_{name}{ext}",
+          "description": "misskey image name rule if alt text is `Alt text`, {name}{ext} = {base}"
         },
+        "simple_post_sns.clean_without_confirm": {
+          "type": "boolean",
+          "default": false,
+          "description": "clean text file or selection without after posting"
+        },
+        "simple_post_sns.clean_never": {
+          "type": "boolean",
+          "default": false,
+          "description": "never clean text file or selection after posting"
+        },    
         "simple_post_sns.misskey_post_default": {
           "type": "object",
           "description": "default misskey post body",

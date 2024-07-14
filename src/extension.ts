@@ -56,22 +56,8 @@ const POST_BODY_DEFAULT: IPostBody = {
 	text: "There is something wrong with VSCode Ext.",
 };
 
-
-
 const MISSKEY_INSTANCE = 'https://misskey.io'; // MisskeyインスタンスのURL
 const CONF = vscode.workspace.getConfiguration("simple_post_sns");
-
-function readBinaryFile(filePath: string): Promise<Buffer> {
-	return new Promise((resolve, reject) => {
-		fs.readFile(filePath, (err, data) => {
-			if (err) {
-				reject(err);
-			} else {
-				resolve(data);
-			}
-		});
-	});
-}
 
 const sleep = async (ms: number) => {
 	return new Promise((resolve) => setTimeout(resolve, ms));
@@ -89,44 +75,6 @@ const getCurrentFormattedTime = (): string => {
 	return `${year}-${month}-${day}T${hours}-${minutes}-${seconds}`;
 };
 
-
-
-// const upload_image = async (image_alt: string, image_path: string, post_body_new: IPostBody, editor_path: string) => {
-// 	const API_KEY = CONF.misskey_token;
-
-// 	const headers = {
-// 		"Content-Type": "multipart/form-data"
-// 	};
-
-// 	let file_path_new: string = ((image_alt === "Alt text") ? path.basename(image_path) : image_alt);
-// 	if (image_alt === "Alt text") {
-// 		file_path_new = getCurrentFormattedTime() + "_" + path.basename(image_path);
-// 	} else if (image_alt === "!raw") {
-// 		file_path_new = path.basename(image_path);
-// 	} else if (image_alt === "!dt") {
-// 		file_path_new = getCurrentFormattedTime() + path.extname(image_path);
-// 	}
-// 	console.log(file_path_new);
-// 	const form = new FormData();
-// 	form.append("file", fs.createReadStream(path.resolve(path.dirname(editor_path), image_path)));
-// 	form.append('name', file_path_new);
-// 	form.append("i", API_KEY);
-// 	if (CONF.misskey_folder_id) {
-// 		form.append("folderId", CONF.misskey_folder_id);
-// 	}
-// 	const response = await axios.post(
-// 		`${MISSKEY_INSTANCE}/api/drive/files/create`, form, {
-// 		headers: headers
-// 	}
-// 	);
-// 	console.log('Upload successful:', response.data);
-// 	const media_id = await response.data.id;
-// 	if (!post_body_new.mediaIds) {
-// 		post_body_new.mediaIds = [];
-// 	}
-// 	post_body_new.mediaIds.push(media_id);
-// }
-
 class PostSns {
 	public editor: vscode.TextEditor | null = null;
 	public text: string = "";
@@ -137,9 +85,10 @@ class PostSns {
 		if (vscode.window.activeTextEditor) {
 			this.editor = vscode.window.activeTextEditor;
 		}
+		// console.log(this.editor);
 		this.mode = mode;
 		this.set_text(text);
-		console.log(this.text);
+		// console.log(143, this.text);
 		this.parser = new Parser(this);
 	}
 
@@ -147,20 +96,24 @@ class PostSns {
 		return CONF.misskey_token;
 	}
 
-	public set_text(text: string = "") {
+	public set_text = (text: string = "") => {
 		if (!this.editor) {
-			return text;
+			this.text = text;
+			return;
 		}
 		switch (this.mode) {
 			case "file":
-				return this.editor.document.getText();
+				this.text = this.editor.document.getText();
+				break;
 			case "selection":
 				const selections = this.editor.selections;
-				return selections.map(
+				this.text = selections.map(
 					selection => this.editor?.document.getText(selection)
 				).join("\n");
+				break;
 			default:
-				return text;
+				this.text = text;
+				break;
 		}
 	}
 
@@ -168,28 +121,28 @@ class PostSns {
 		if (!this.editor) {
 			return null;
 		}
+		// console.log(image_alt, image_path);
 		const headers = {
 			"Content-Type": "multipart/form-data"
 		};
 
-		let file_path_new: string;
-		switch (image_alt) {
-			case "Alt text":
-				file_path_new = getCurrentFormattedTime() + "_" + path.basename(image_path);
-				break;
-			case "!raw":
-				file_path_new = path.basename(image_path);
-				break;
-			case "!dt":
-				file_path_new = getCurrentFormattedTime() + path.extname(image_path);
-				break;
-			default:
-				file_path_new = image_alt;
-				break;
-		}
+		let file_path_new: string = (image_alt === "Alt text") ? CONF.misskey_image_name_rule : image_alt;
+		file_path_new = file_path_new.replace(
+			/\{dt\}/, getCurrentFormattedTime()
+		).replace(
+			/\{name\}/, path.parse(image_path).name
+		).replace(
+			/\{ext\}/, path.parse(image_path).ext
+		).replace(
+			/\{base\}/, path.basename(image_path)
+		).replace(
+			/\{dir\}/, path.basename(path.dirname(image_path))
+		);
 
 		const form = new FormData();
-		form.append("file", fs.createReadStream(path.resolve(path.dirname(this.editor.document.uri.fsPath), image_path)));
+		form.append("file", fs.createReadStream(
+			path.resolve(
+				path.dirname(this.editor.document.uri.fsPath), image_path)));
 		form.append('name', file_path_new);
 		form.append("i", this.api_key);
 		if (CONF.misskey_folder_id) {
@@ -202,11 +155,6 @@ class PostSns {
 		);
 		console.log('Upload successful:', response.data);
 		return response.data.id;
-		// const media_id = await response.data.id;
-		// if (!post_body_new.mediaIds) {
-		// 	post_body_new.mediaIds = [];
-		// }
-		// post_body_new.mediaIds.push(media_id);
 	}
 	private post_note = async (options_axios: AxiosRequestConfig) => {
 		try {
@@ -219,11 +167,7 @@ class PostSns {
 		}
 	}
 	public post_to_sns = async () => {
-
-		// const post_body_default_merged: IPostBody = Object.assign(POST_BODY_DEFAULT, CONF.misskey_post_default || {});
-	
 		await this.parser.parse_all();
-	
 		const headers = {
 			Authorization: `Bearer ${this.api_key}`,
 			'Content-Type': 'application/json',
@@ -235,17 +179,16 @@ class PostSns {
 				headers: headers,
 				data: post_body,
 			};
-			this.post_note(options_axios);
+			await this.post_note(options_axios);
 			await sleep(5000);
 		}
 		vscode.window.showInformationMessage('Posted to Misskey!');
-	
 	};
 
 }
 const REGEXS_LINE_TYPE = {
 	"title": /^(#+)\s*(.*?)\s*$/,
-	"image": /^\s*!\[.*\]\(.*\)\s*$/,
+	"image": /^\s*!\[(.*)\]\((.*)\)\s*$/,
 	"comment": /^\s*<!--\s*(.*?)\s*-->\s*$/,
 }
 
@@ -255,7 +198,7 @@ interface ILineInfo {
 }
 class Parser {
 	public postSns: PostSns;
-	public line: string | void = "";
+	public line: string = "";
 	private linePos: number = 0;
 	public title_level: number = 1;
 	public title_level_before: number = 1;
@@ -277,14 +220,11 @@ class Parser {
 		);
 	}
 	private *line_generator(): Generator<string, void, unknown> {
-		for (const line of this.postSns.text.split('\n')) {
+		for (const line of (this.postSns.text + "\n#").split('\n')) {
+			this.linePos += 1;
+			this.line = line;
 			yield line;
 		}
-	}
-	public next_line = (): string | void => {
-		this.line = this.line_generator().next().value;
-		this.linePos += 1;
-		return this.line;
 	}
 	private judge_line_type = (): ILineInfo => {
 
@@ -310,7 +250,7 @@ class Parser {
 		};
 	}
 	public parse_all = async () => {
-		while (typeof this.next_line() === "string") {
+		for (const _line of this.line_generator()) {
 			await this.parse_line();
 		}
 	}
@@ -323,9 +263,6 @@ class Parser {
 	}
 
 	private parse_line = async () => {
-		if (typeof this.line !== "string") {
-			return;
-		}
 		const line_info = this.judge_line_type();
 		switch (line_info.type) {
 			case "end":
@@ -376,8 +313,8 @@ class Parser {
 				if (!res_image) {
 					break;
 				}
-				const image_alt = res_image[1];
-				const image_path = res_image[2];
+				const image_alt = res_image[0];
+				const image_path = res_image[1];
 				try {
 					const data_id = await this.postSns.upload_image(image_alt, image_path);
 					if (!data_id) {
@@ -456,170 +393,8 @@ class Parser {
 
 }
 
-
-// const perse_text = async (text: string, post_body_default: IPostBody, editor_path: string): Promise<IPostBody[]> => {
-// 	let arr_post_bodys: IPostBody[] = [];
-// 	let arr_stack_text: string[] = [];
-// 	let mode = "text";
-// 	let configs_per_level: { [key: number]: IPostBody } = { 1: post_body_default };
-// 	let title_level = 1;
-// 	let post_body_new: IPostBody = structuredClone(post_body_default);
-// 	for (const line of text.split('\n')) {
-// 		const res_check_title = line.match(/^(#+)\s*/);
-// 		if (res_check_title) {
-// 			const str_title = line.replace(res_check_title[0], "");
-// 			const title_level_before = title_level;
-// 			title_level = res_check_title[1].length;
-// 			// console.log(mode, title_level, str_title, arr_stack_text);
-// 			if (mode === "text") {
-// 				const arr_stack_text_valid = arr_stack_text.map(
-// 					(v) => v.trim()
-// 				).filter(
-// 					(v) => v.length > 0
-// 				);
-// 				if (arr_stack_text_valid.length > 0) {
-// 					arr_post_bodys.push(
-// 						Object.assign(
-// 							post_body_new,
-// 							{ text: arr_stack_text_valid.join("\n") }
-// 						)
-// 					);
-// 				}
-// 				arr_stack_text = [];
-// 			}
-// 			if (title_level < title_level_before) {
-// 				for (let i = title_level_before; i > title_level; i--) {
-// 					configs_per_level[i] = structuredClone(post_body_default);
-// 				}
-// 			}
-// 			if (str_title === "config") {
-// 				mode = "config";
-// 				configs_per_level[title_level] = structuredClone(post_body_default);
-// 				continue;
-// 			} else {
-// 				if (!Object.keys(configs_per_level).includes(String(title_level))) {
-// 					configs_per_level[title_level] = structuredClone(Object.entries(configs_per_level
-// 					).filter(([k, v]) => Number(k) < title_level
-// 					).sort((a, b) => Number(a[0]) - Number(b[0])
-// 					).slice(-1)[0][1]);
-// 				}
-// 				post_body_new = structuredClone(configs_per_level[title_level]);
-// 				if (str_title.length > 0 && str_title in ALLOWED_KEYS.visibility) {
-// 					post_body_new.visibility = str_title as "public" | "home" | "followers" | "specified";
-// 				}
-// 				mode = "text";
-// 			}
-// 			arr_stack_text = [];
-// 		} else if (line.match(/^\s*!\[.*\]\(.*\)\s*$/)) {
-// 			const res_image = line.match(/^\s*!\[(.*)\]\((.*)\)\s*$/);
-// 			if (!res_image) {
-// 				continue;
-// 			}
-// 			const image_alt = res_image[1];
-// 			const image_path = res_image[2];
-// 			try {
-// 				await upload_image(image_alt, image_path, post_body_new, editor_path);
-// 			} catch (error) {
-// 				console.error('Error uploading image:', error);
-// 			}
-
-// 		} else if (line.match(/^\s*<!--.*-->\s*$/)) {
-// 			// コメント行をコメントとして認識
-// 			const str_content = line.replace(/^\s*<!--(.*)-->\s*$/, "$1").trim();
-// 			console.log(str_content);
-// 		} else {
-// 			if (mode === "config") {
-// 				configs_per_level[title_level] = update_config(line, structuredClone(configs_per_level[title_level]));
-
-// 			} else {
-// 				arr_stack_text.push(line);
-// 			}
-// 		}
-// 	}
-// 	return arr_post_bodys;
-// };
-
-// const update_config = (line: string, config_now: IPostBody): IPostBody => {
-// 	const res_check_config = line.match(/^-?\s*(\S[^:]+):\s*(\S.*)/);
-// 	if (!res_check_config) {
-// 		return config_now;
-// 	}
-
-// 	const key_config = res_check_config[1] as keyof IPostBody;
-// 	const value_config = res_check_config[2];
-
-// 	if (key_config in ALLOWED_KEYS) {
-// 		if (!ALLOWED_KEYS[key_config]?.includes(value_config)) {
-// 			return config_now;
-// 		}
-// 	}
-
-// 	switch (key_config) {
-// 		case "visibility":
-// 			config_now[key_config] = value_config as "public" | "home" | "followers" | "specified" | null;
-// 			break;
-// 		case "reactionAcceptance":
-// 			config_now[key_config] = value_config as "likeOnly" | "likeOnlyForRemote" | "nonSensitiveOnly" | "nonSensitiveOnlyForRemote" | null;
-// 			break;
-// 		case "cw":
-// 		case "replyId":
-// 		case "renoteId":
-// 		case "channelId":
-// 			config_now[key_config] = value_config;
-// 			break;
-// 		case "localOnly":
-// 		case "noExtractMentions":
-// 		case "noExtractHashtags":
-// 		case "noExtractEmojis":
-// 			config_now[key_config] = (value_config === "true");
-// 			break;
-// 		case "visibleUserIds":
-// 			config_now[key_config] = value_config.split(",");
-// 			break;
-// 		case "poll":
-// 			config_now[key_config] = JSON.parse(value_config);
-// 			break;
-// 		default:
-// 			// 未知のキーは無視する
-// 			break;
-// 	}
-
-// 	return config_now;
-// };
-// const post_to_sns = async (editor: vscode.TextEditor, text: string) => {
-
-// 	const post_body_default_merged: IPostBody = Object.assign(POST_BODY_DEFAULT, CONF.misskey_post_default || {});
-
-// 	const arr_post_bodys = perse_text(text, post_body_default_merged, editor.document.uri.fsPath);
-
-// 	const API_KEY = CONF.misskey_token;
-
-// 	const headers = {
-// 		Authorization: `Bearer ${API_KEY}`,
-// 		'Content-Type': 'application/json',
-// 	};
-// 	for (const post_body of await arr_post_bodys) {
-// 		const options_axios: AxiosRequestConfig = {
-// 			url: `${MISSKEY_INSTANCE}/api/notes/create`,
-// 			method: 'post',
-// 			headers: headers,
-// 			data: post_body,
-// 		};
-// 		// console.log(options_axios);
-// 		// console.log(API_KEY);
-// 		postNote(options_axios);
-// 		await sleep(5000);
-// 	}
-// 	vscode.window.showInformationMessage('Posted to Misskey!');
-
-// };
-
 export function activate(context: vscode.ExtensionContext) {
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "simple-post-bsky" is now active!');
-	// post_to_sns();
 	vscode.window.showInformationMessage('Do you want to proceed?', 'Yes', 'No').then(selection => {
 		if (selection === 'Yes') {
 			vscode.window.showInformationMessage('You clicked Yes!');
@@ -628,42 +403,48 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	})
 	vscode.window.showInformationMessage('Posted to Misskey!25');
-	//Write to output.
-
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	// let arr_disposables = [];
-	context.subscriptions.push(vscode.commands.registerCommand('simple-post-sns.post-to-sns', async () => {
+	const main_post_sns = async (mode: string = "file") => {
 		const editor = vscode.window.activeTextEditor;
+		console.log(editor);
 
 		if (!editor || editor.document.languageId !== 'markdown') {
 			vscode.window.showErrorMessage('No active Markdown editor found.');
 			return;
 		}
-		const postSns = new PostSns("file");
+		console.log(1);
+		const postSns = new PostSns(mode);
+		console.log(2);
 		postSns.post_to_sns();
-		// const document = editor.document;
-		// const text = document.getText() + "\n#";
-		// post_to_sns(editor, text);
-	}));
-	context.subscriptions.push(vscode.commands.registerCommand('simple-post-sns.post-to-sns-with-selection', async () => {
-		const editor = vscode.window.activeTextEditor;
+		console.log(3);
+	}
+	main_post_sns();
 
-		if (!editor || editor.document.languageId !== 'markdown') {
-			vscode.window.showErrorMessage('No active Markdown editor found.');
-			return;
-		}
-		const postSns = new PostSns("selection");
-		postSns.post_to_sns();
+	context.subscriptions.push(vscode.commands.registerCommand(
+		'simple-post-sns.post-to-sns', async () => {
+			// const editor = vscode.window.activeTextEditor;
 
-		// const selections = editor.selections;
-		// const text = selections.map(selection => editor.document.getText(selection)).join("\n") + "\n#";
+			// if (!editor || editor.document.languageId !== 'markdown') {
+			// 	vscode.window.showErrorMessage('No active Markdown editor found.');
+			// 	return;
+			// }
+			// const postSns = new PostSns("file");
+			// postSns.post_to_sns();
+			main_post_sns("file");
+		}));
+	context.subscriptions.push(vscode.commands.registerCommand(
+		'simple-post-sns.post-to-sns-with-selection', async () => {
+			// const editor = vscode.window.activeTextEditor;
 
-		// post_to_sns(editor, text);
-	}));
+			// if (!editor || editor.document.languageId !== 'markdown') {
+			// 	vscode.window.showErrorMessage('No active Markdown editor found.');
+			// 	return;
+			// }
+			// const postSns = new PostSns("selection");
+			// postSns.post_to_sns();
+			main_post_sns("selection");
 
-	// context.subscriptions.push(disposable);
+		}));
+
 }
 
 // This method is called when your extension is deactivated
