@@ -17,20 +17,20 @@
   "contributes": {
     "commands": [
       {
-        "command": "simplePostSns.post-to-sns",
+        "command": "simple-post-sns.post-to-sns",
         "title": "Simple Post SNS: Post to SNS"
       },
       {
         "when":"editorHasSelection",
-        "command": "simplePostSns.post-to-sns-with-selection",
-        "title": "Simple Post SNS: Post to SNS with Selected Lines"
+        "command": "simple-post-sns.post-to-sns-with-selection",
+        "title": "Simple Post SNS: Post to SNS with Selections"
       }
     ],
     "menus": {
       "editor/context": [
         {
           "when": "editorLangId == markdown",
-          "command": "simplePostSns.post-to-sns",
+          "command": "simple-post-sns.post-to-sns",
           "group": "navigation"
         }
       ]
