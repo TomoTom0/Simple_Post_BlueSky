@@ -1,23 +1,156 @@
 {
-  "name": "simple-post-bsky",
-  "displayName": "Simple Post BSky",
-  "description": "only post to blue sky on VSCode with Markdown",
-  "version": "0.0.1",
+  "name": "simple-post-sns",
+  "displayName": "Simple Post SNS",
+  "publisher": "tomo-iris",
+  "description": "post to SNS on VSCode with Markdown",
+  "version": "0.1.0",
   "engines": {
-    "vscode": "^1.91.0"
+    "vscode": "^1.80.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:markdown"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "simple-post-bsky.helloWorld",
-        "title": "Hello World"
+        "command": "simple-post-sns.post-to-sns",
+        "title": "Simple Post SNS: Post to SNS with File"
+      },
+      {
+        "when":"editorHasSelection",
+        "command": "simple-post-sns.post-to-sns-with-selection",
+        "title": "Simple Post SNS: Post to SNS with Selection"
+      },      
+      {
+        "command": "simple-post-sns.post-to-sns-with-clipboard",
+        "title": "Simple Post SNS: Post to SNS with Clipboard"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Simple Post SNS",
+      "properties": {
+        "simple_post_sns.misskey_token": {
+          "type": "string",
+          "description": "misskey token"
+        },
+        "simple_post_sns.misskey_folder_id": {
+          "type": "string",
+          "description": "misskey folder id"
+        },        
+        "simple_post_sns.misskey_image_name_rule": {
+          "type": "string",
+          "default": "{dt}_{name}{ext}",
+          "description": "misskey image name rule if alt text is `Alt text`, {name}{ext} = {base}"
+        },
+        "simple_post_sns.file_name_rule": {
+          "type": "string",
+          "default": ".*",
+          "description": "this extension only triggered when file name matches this rule"
+        },
+        "simple_post_sns.clean_always": {
+          "type": "boolean",
+          "default": false,
+          "description": "clean text file or selection without after posting"
+        },
+        "simple_post_sns.clean_never": {
+          "type": "boolean",
+          "default": false,
+          "description": "never clean text file or selection after posting"
+        },    
+        "simple_post_sns.misskey_post_default": {
+          "type": "object",
+          "description": "default misskey post body",
+          "default":
+            {
+              "visibility": "specified",
+              "visibleUserIds": [],
+              "cw": null,
+              "localOnly": false,
+              "reactionAcceptance": null,
+              "noExtractMentions": false,
+              "noExtractHashtags": false,
+              "noExtractEmojis": false,
+              "replyId": null,
+              "renoteId": null,
+              "channelId": null,
+              "text": "There is something wrong with VSCode Ext."
+            }
+          ,
+          "properties": {
+            "visibility": {
+              "type": "string",
+              "description": "Visibility setting"
+            },
+            "visibleUserIds": {
+              "type": "array",
+              "description": "Visible user IDs",
+              "items": {
+                "type": "string"
+              }
+            },
+            "cw": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Content warning"
+            },
+            "localOnly": {
+              "type": "boolean",
+              "description": "Local only setting"
+            },
+            "reactionAcceptance": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Reaction acceptance setting"
+            },
+            "noExtractMentions": {
+              "type": "boolean",
+              "description": "No extract mentions setting"
+            },
+            "noExtractHashtags": {
+              "type": "boolean",
+              "description": "No extract hashtags setting"
+            },
+            "noExtractEmojis": {
+              "type": "boolean",
+              "description": "No extract emojis setting"
+            },
+            "replyId": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Reply ID"
+            },
+            "renoteId": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Renote ID"
+            },
+            "channelId": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Channel ID"
+            },
+            "text": {
+              "type": "string",
+              "description": "Text content"
+            }
+          }
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
@@ -34,16 +167,21 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.91.0",
     "@types/mocha": "^10.0.7",
-    "@types/node": "20.x",
+    "@types/node": "^20.14.10",
+    "@types/vscode": "^1.91.0",
     "@typescript-eslint/eslint-plugin": "^7.14.1",
     "@typescript-eslint/parser": "^7.11.0",
-    "eslint": "^8.57.0",
-    "esbuild": "^0.21.5",
-    "npm-run-all": "^4.1.5",
-    "typescript": "^5.4.5",
     "@vscode/test-cli": "^0.0.9",
-    "@vscode/test-electron": "^2.4.0"
+    "@vscode/test-electron": "^2.4.0",
+    "esbuild": "^0.21.5",
+    "eslint": "^8.57.0",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.5.3"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "dotenv": "^16.4.5",
+    "ts-node": "^10.9.2"
   }
 }
