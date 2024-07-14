@@ -24,17 +24,12 @@
         "when":"editorHasSelection",
         "command": "simple-post-sns.post-to-sns-with-selection",
         "title": "Simple Post SNS: Post to SNS with Selections"
+      },      
+      {
+        "command": "simple-post-sns.post-to-sns-with-clipboard",
+        "title": "Simple Post SNS: Post to SNS with Clipboard"
       }
     ],
-    "menus": {
-      "editor/context": [
-        {
-          "when": "editorLangId == markdown",
-          "command": "simple-post-sns.post-to-sns",
-          "group": "navigation"
-        }
-      ]
-    },
     "configuration": {
       "title": "Simple Post SNS",
       "properties": {
@@ -51,7 +46,7 @@
           "default": "{dt}_{name}{ext}",
           "description": "misskey image name rule if alt text is `Alt text`, {name}{ext} = {base}"
         },
-        "simple_post_sns.clean_without_confirm": {
+        "simple_post_sns.clean_always": {
           "type": "boolean",
           "default": false,
           "description": "clean text file or selection without after posting"

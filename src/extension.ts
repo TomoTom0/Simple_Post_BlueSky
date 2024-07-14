@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import axios, { AxiosRequestConfig, head } from 'axios';
-import { format } from 'path';
+// import { format } from 'path';
 import * as fs from 'fs';
 import * as path from 'path';
 import FormData from 'form-data';
@@ -25,10 +25,6 @@ interface IPostBody {
 	localOnly: boolean;
 	visibility: (typeof ALLOWED_KEYS.visibility)[number] | null;
 	reactionAcceptance?: (typeof ALLOWED_KEYS.reactionAcceptance)[number] | null;
-	// [key in (typeof KEYS_INFO_FORMAT.string)[number]]?: string | null;
-	// [key in KEYS_INFO_FORMAT.boolean]?: boolean;
-	// [key in KEYS_INFO_FORMAT.array]?: string[];
-	// [key in KEYS_INFO_FORMAT.object]?: { [key: string]: any };
 	noExtractMentions?: boolean;
 	noExtractHashtags?: boolean;
 	noExtractEmojis?: boolean;
@@ -76,19 +72,15 @@ const getCurrentFormattedTime = (): string => {
 };
 
 class PostSns {
-	public editor: vscode.TextEditor | null = null;
+	public editor: vscode.TextEditor;
 	public text: string = "";
 	public mode: string = "file";
 	public parser: Parser;
 
-	constructor(mode: string = "file", text: string = "") {
-		if (vscode.window.activeTextEditor) {
-			this.editor = vscode.window.activeTextEditor;
-		}
-		// console.log(this.editor);
+	constructor(mode: string = "file", editor: vscode.TextEditor, text: string = "") {
+		this.editor = editor;
 		this.mode = mode;
 		this.set_text(text);
-		// console.log(143, this.text);
 		this.parser = new Parser(this);
 	}
 
@@ -96,7 +88,7 @@ class PostSns {
 		return CONF.misskey_token;
 	}
 
-	public set_text = (text: string = "") => {
+	public set_text = async (text: string = "") => {
 		if (!this.editor) {
 			this.text = text;
 			return;
@@ -111,17 +103,19 @@ class PostSns {
 					selection => this.editor?.document.getText(selection)
 				).join("\n");
 				break;
+			case "clipboard":
+				this.text = await vscode.env.clipboard.readText();
+				break;
 			default:
 				this.text = text;
 				break;
 		}
-	}
+	};
 
 	public async upload_image(image_alt: string, image_path: string): Promise<string | null> {
 		if (!this.editor) {
 			return null;
 		}
-		// console.log(image_alt, image_path);
 		const headers = {
 			"Content-Type": "multipart/form-data"
 		};
@@ -165,7 +159,8 @@ class PostSns {
 			console.error('Error posting note:', error);
 			return null;
 		}
-	}
+	};
+
 	public post_to_sns = async () => {
 		await this.parser.parse_all();
 		const headers = {
@@ -182,15 +177,56 @@ class PostSns {
 			await this.post_note(options_axios);
 			await sleep(5000);
 		}
-		vscode.window.showInformationMessage('Posted to Misskey!');
+		// vscode.window.showInformationMessage('Posted to Misskey!');
+		this.confirm_clean_text();
 	};
-
+	private clean_text = () => {
+		switch (this.mode) {
+			case "selection":
+				this.editor?.edit(editBuilder => {
+					this.editor?.selections.forEach(selection => {
+						editBuilder.replace(selection, '');
+					});
+				});
+				break;
+			case "file":
+				this.editor?.edit(editBuilder => {
+					editBuilder.replace(
+						new vscode.Range(
+							new vscode.Position(0, 0),
+							new vscode.Position(this.editor.document.lineCount, 0)
+						),
+						''
+					);
+				});
+				break;
+		};
+	};
+	public confirm_clean_text = () => {
+		if (CONF.clean_never) { return; }
+		if (CONF.clean_always) { return this.clean_text(); }
+		vscode.window.showInformationMessage('Do you want to clean editor about posts?', 'Yes', 'No').then(selection => {
+			if (selection === 'Yes') {
+				this.clean_text();
+				removeMessage(vscode.window.showInformationMessage('Simple Post SNS: Cleaned'));
+			} else {
+				removeMessage(vscode.window.showInformationMessage('Simple Post SNS: Bye'));
+			}
+		});
+	};
 }
+
+const removeMessage = (message: Thenable<string | undefined>, ms: number = 5000) => {
+	setTimeout(() => {
+		message.then(() => { });
+	}, ms);
+};
+
 const REGEXS_LINE_TYPE = {
 	"title": /^(#+)\s*(.*?)\s*$/,
 	"image": /^\s*!\[(.*)\]\((.*)\)\s*$/,
 	"comment": /^\s*<!--\s*(.*?)\s*-->\s*$/,
-}
+};
 
 interface ILineInfo {
 	type: string;
@@ -248,12 +284,12 @@ class Parser {
 			type: "text",
 			content: [this.line],
 		};
-	}
+	};
 	public parse_all = async () => {
 		for (const _line of this.line_generator()) {
 			await this.parse_line();
 		}
-	}
+	};
 	get arr_stack_text_valid(): string[] {
 		return this.arr_stack_text.map(
 			(v) => v.trim()
@@ -288,7 +324,7 @@ class Parser {
 						this.configs_per_level[i] = structuredClone(this.post_body_default);
 					}
 				}
-				if (this.title === "config") {
+				if (this.title === "config misskey") {
 					this.mode = "config";
 					this.configs_per_level[this.title_level] = structuredClone(this.post_body_default);
 					break;
@@ -341,7 +377,7 @@ class Parser {
 				break;
 
 		}
-	}
+	};
 
 	private update_config = (line: string, config_now: IPostBody): IPostBody => {
 		const res_check_config = line.match(/^-?\s*(\S[^:]+):\s*(\S.*)/);
@@ -395,55 +431,32 @@ class Parser {
 
 export function activate(context: vscode.ExtensionContext) {
 
-	vscode.window.showInformationMessage('Do you want to proceed?', 'Yes', 'No').then(selection => {
-		if (selection === 'Yes') {
-			vscode.window.showInformationMessage('You clicked Yes!');
-		} else {
-			vscode.window.showInformationMessage('You clicked No!');
-		}
-	})
-	vscode.window.showInformationMessage('Posted to Misskey!25');
 	const main_post_sns = async (mode: string = "file") => {
 		const editor = vscode.window.activeTextEditor;
-		console.log(editor);
-
 		if (!editor || editor.document.languageId !== 'markdown') {
 			vscode.window.showErrorMessage('No active Markdown editor found.');
 			return;
 		}
-		console.log(1);
-		const postSns = new PostSns(mode);
-		console.log(2);
+		const postSns = new PostSns(mode, editor);
 		postSns.post_to_sns();
-		console.log(3);
-	}
-	main_post_sns();
+		removeMessage(vscode.window.showInformationMessage('Simple Post SNS: Posted'));
+	};
 
 	context.subscriptions.push(vscode.commands.registerCommand(
 		'simple-post-sns.post-to-sns', async () => {
-			// const editor = vscode.window.activeTextEditor;
-
-			// if (!editor || editor.document.languageId !== 'markdown') {
-			// 	vscode.window.showErrorMessage('No active Markdown editor found.');
-			// 	return;
-			// }
-			// const postSns = new PostSns("file");
-			// postSns.post_to_sns();
 			main_post_sns("file");
-		}));
+		}
+	));
 	context.subscriptions.push(vscode.commands.registerCommand(
 		'simple-post-sns.post-to-sns-with-selection', async () => {
-			// const editor = vscode.window.activeTextEditor;
-
-			// if (!editor || editor.document.languageId !== 'markdown') {
-			// 	vscode.window.showErrorMessage('No active Markdown editor found.');
-			// 	return;
-			// }
-			// const postSns = new PostSns("selection");
-			// postSns.post_to_sns();
 			main_post_sns("selection");
-
-		}));
+		}
+	));
+	context.subscriptions.push(vscode.commands.registerCommand(
+		'simple-post-sns.post-to-sns-with-clipboard', async () => {
+			main_post_sns("clipboard");
+		}
+	));
 
 }
 
