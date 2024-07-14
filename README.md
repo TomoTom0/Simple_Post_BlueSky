@@ -1,71 +1,149 @@
-# simple-post-bsky README
+# Simple Post SNS on VSCode
 
-This is the README for your extension "simple-post-bsky". After writing up a brief description, we recommend including the following sections.
+このVSCode拡張機能 "simple-post-sns" は、VSCode上からSNSへの投稿 (現状はMisskeyのみ) を可能にします。以下に、この拡張機能の主な機能と設定方法を説明します。
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+この拡張機能を使用すると、VSCodeのエディタ内から直接SNSへの投稿が可能になります。
 
-For example if there is an image subfolder under your extension project workspace:
+### Post
 
-\!\[feature X\]\(images/feature-x.png\)
+たとえば下記の通りMarkdownに記入して、`Ctrl+Shift+P`でコマンドパレットを開いて`Simple Post SNS: Post with File`を選択すると、Misskeyに投稿されます。
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+```markdown
+# test
 
-## Requirements
+aa
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+![Alt text](imgs/demo/image.png)
 
-## Extension Settings
+## config misskey
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+- cw: bb
 
-For example:
+##
 
-This extension contributes the following settings:
+demo
+```
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+他の投稿方法として、選択範囲を指定して`Simple Post SNS: Post with Selection`を選択することで、選択範囲のみを投稿することも可能です。
+- [ ] `Simple Post SNS: Post with Clipboard`
 
-## Known Issues
+#### Title Content
+各見出しの内容は、以下の通り解釈されます。
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+- `config misskey`: misskey投稿用の設定
+- `visibility`に対する有効な値 (`public`, `home`, `followers`, `specified`): 投稿の公開範囲として解釈されたうえで、続きはPostとして投稿される
+- その他および空白: 見出しの内容は無視されたうえで、続きの内容がPostとして投稿される
 
-## Release Notes
+#### Title Depth
 
-Users appreciate release notes as you update your extension.
+各見出しの深度は、以下の通り解釈されます。
 
-### 1.0.0
+- 見出しの深さが変わるごとに、投稿が切り替わる
+- configは、その階層以下の続く投稿に対して有効
+- [ ] level 3以上の見出しはlevel 2の見出しの連投として解釈される
 
-Initial release of ...
+### Config on Posting
 
-### 1.0.1
+#### Misskey
 
-Fixed issue #.
+- Misskey投稿用の設定の既定は下記の通りです。
+- 拡張機能の設定や投稿時の`config misskey`で設定を変更できます。
 
-### 1.1.0
+```ts
+const POST_BODY_DEFAULT: IPostBody = {
+	visibility: 'specified',
+	visibleUserIds: [],
+	cw: null,
+	localOnly: false,
+	reactionAcceptance: null,
+	noExtractMentions: false,
+	noExtractHashtags: false,
+	noExtractEmojis: false,
+	replyId: null,
+	renoteId: null,
+	channelId: null,
+	text: "There is something wrong with VSCode Ext.",
+};
+```
 
-Added features X, Y, and Z.
+- 一部の項目には、以下のような制約があります。
 
----
+```ts
+const ALLOWED_KEYS: { [key: string]: string[] } = {
+	visibility: ["public", "home", "followers", "specified"],
+	reactionAcceptance: ["likeOnly", "likeOnlyForRemote", "nonSensitiveOnly", "nonSensitiveOnlyForRemote"],
+};
+```
 
-## Following extension guidelines
+## Install
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
+vsixファイル~~または、VSCodeの拡張機能検索~~からインストールしてください。
 
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
+## Conditions
 
-## Working with Markdown
+この拡張機能を使用するには、VSCodeがインストールされていることが必要です。また、SNSへの投稿を行うためのアカウント情報およびそのサービスにおけるAPIトークンの取得が必要となります。
 
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
+## Configuration of this Extension
 
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
+この拡張機能の設定のうち、Misskey投稿時の設定を除いた内容は下記の通り。
+- [ ] 詳細な説明の追加
 
-## For more information
+```json
+"simple_post_sns.misskey_token": {
+  "type": "string",
+  "description": "misskey token"
+},
+"simple_post_sns.misskey_folder_id": {
+  "type": "string",
+  "description": "misskey folder id"
+},        
+"simple_post_sns.misskey_image_name_rule": {
+  "type": "string",
+  "default": "{dt}_{name}{ext}",
+  "description": "misskey image name rule if alt text is `Alt text`, {name}{ext} = {base}"
+},
+"simple_post_sns.file_name_rule": {
+  "type": "string",
+  "default": ".*",
+  "description": "this extension only triggered when file name matches this rule"
+},
+"simple_post_sns.clean_always": {
+  "type": "boolean",
+  "default": false,
+  "description": "clean text file or selection without after posting"
+},
+"simple_post_sns.clean_never": {
+  "type": "boolean",
+  "default": false,
+  "description": "never clean text file or selection after posting"
+}
+```
 
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
 
-**Enjoy!**
+## Future Work
+
+- [ ] 連投の時間調整
+- [x] optionの充実
+- [ ] 投稿済みメッセージに追記
+- [x] 投稿済みのclean
+- [x] 選択して部分投稿
+- [ ] preview?
+- [x] ファイル名で絞り込み
+- [ ] default tag
+- [ ] README.mdの作成
+- [ ] misskey REST APIのメモ
+- [x] 構造体でrewrite
+- [ ] post from clipboard
+- [ ] 長文が自動分割される
+
+## Release
+
+### 0.1.0
+
+- Misskeyへの投稿
+- 画像の投稿
+- 投稿後のclean
+- 投稿時の設定調整
+- 拡張機能の設定

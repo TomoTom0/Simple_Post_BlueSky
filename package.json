@@ -23,7 +23,7 @@
       {
         "when":"editorHasSelection",
         "command": "simple-post-sns.post-to-sns-with-selection",
-        "title": "Simple Post SNS: Post to SNS with Selections"
+        "title": "Simple Post SNS: Post to SNS with Selection"
       },      
       {
         "command": "simple-post-sns.post-to-sns-with-clipboard",
@@ -80,75 +80,74 @@
               "text": "There is something wrong with VSCode Ext."
             }
           ,
-            "properties": {
-              "visibility": {
-                "type": "string",
-                "description": "Visibility setting"
-              },
-              "visibleUserIds": {
-                "type": "array",
-                "description": "Visible user IDs",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "cw": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "Content warning"
-              },
-              "localOnly": {
-                "type": "boolean",
-                "description": "Local only setting"
-              },
-              "reactionAcceptance": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "Reaction acceptance setting"
-              },
-              "noExtractMentions": {
-                "type": "boolean",
-                "description": "No extract mentions setting"
-              },
-              "noExtractHashtags": {
-                "type": "boolean",
-                "description": "No extract hashtags setting"
-              },
-              "noExtractEmojis": {
-                "type": "boolean",
-                "description": "No extract emojis setting"
-              },
-              "replyId": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "Reply ID"
-              },
-              "renoteId": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "Renote ID"
-              },
-              "channelId": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "Channel ID"
-              },
-              "text": {
-                "type": "string",
-                "description": "Text content"
+          "properties": {
+            "visibility": {
+              "type": "string",
+              "description": "Visibility setting"
+            },
+            "visibleUserIds": {
+              "type": "array",
+              "description": "Visible user IDs",
+              "items": {
+                "type": "string"
               }
+            },
+            "cw": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Content warning"
+            },
+            "localOnly": {
+              "type": "boolean",
+              "description": "Local only setting"
+            },
+            "reactionAcceptance": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Reaction acceptance setting"
+            },
+            "noExtractMentions": {
+              "type": "boolean",
+              "description": "No extract mentions setting"
+            },
+            "noExtractHashtags": {
+              "type": "boolean",
+              "description": "No extract hashtags setting"
+            },
+            "noExtractEmojis": {
+              "type": "boolean",
+              "description": "No extract emojis setting"
+            },
+            "replyId": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Reply ID"
+            },
+            "renoteId": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Renote ID"
+            },
+            "channelId": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Channel ID"
+            },
+            "text": {
+              "type": "string",
+              "description": "Text content"
             }
-          
+          }
         }
       }
     }
