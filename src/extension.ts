@@ -120,7 +120,7 @@ class PostSns {
 			"Content-Type": "multipart/form-data"
 		};
 
-		let file_path_new: string = (image_alt === "Alt text") ? CONF.misskey_image_name_rule : image_alt;
+		let file_path_new: string = (image_alt === "alt text") ? CONF.misskey_image_name_rule : image_alt;
 		file_path_new = file_path_new.replace(
 			/\{dt\}/, getCurrentFormattedTime()
 		).replace(
@@ -337,7 +337,7 @@ class Parser {
 					}
 					this.post_body_new = structuredClone(this.configs_per_level[this.title_level]);
 					this.mode = "text";
-					if (this.title.length > 0 && this.title in ALLOWED_KEYS.visibility) {
+					if (this.title.length > 0 && ALLOWED_KEYS.visibility.indexOf(this.title)!==-1) {
 						this.post_body_new.visibility = this.title as (typeof ALLOWED_KEYS.visibility)[number];
 					}
 				}
@@ -369,23 +369,23 @@ class Parser {
 				break;
 			default:
 				if (this.mode === "config") {
-					this.update_config(this.line, structuredClone(this.configs_per_level[this.title_level]));
+					this.update_config(this.line, this.configs_per_level[this.title_level]);
 				} else {
 					this.arr_stack_text.push(this.line);
 				}
-				break;
+				break; 
 
 		}
 	};
 
 	private update_config = (line: string, config_now: IPostBody): IPostBody => {
-		const res_check_config = line.match(/^-?\s*(\S[^:]+):\s*(\S.*)/);
+		const res_check_config = line.match(/^-?\s*(\S[^:]+):\s*(.*)/);
 		if (!res_check_config) {
 			return config_now;
 		}
 
-		const key_config = res_check_config[1] as keyof IPostBody;
-		const value_config = res_check_config[2];
+		const key_config = res_check_config[1].trim() as keyof IPostBody;
+		const value_config = res_check_config[2].trim();
 
 		if (key_config in ALLOWED_KEYS) {
 			if (!ALLOWED_KEYS[key_config]?.includes(value_config)) {
@@ -422,7 +422,6 @@ class Parser {
 				// 未知のキーは無視する
 				break;
 		}
-
 		return config_now;
 	};
 
