@@ -4,7 +4,7 @@
   "publisher": "tomo-iris",
   "description": "post to SNS on VSCode with Markdown",
   "icon": "imgs/icon.png",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/TomoTom0/Simple_Post_SNS_onVSCode"
